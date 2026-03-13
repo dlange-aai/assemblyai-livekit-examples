@@ -3,15 +3,15 @@ Dynamic Turn Detection with AssemblyAI + LiveKit
 =================================================
 
 This example demonstrates how to dynamically update AssemblyAI's
-max_turn_silence mid-session using the LiveKit Agents framework.
+min_turn_silence mid-session using the LiveKit Agents framework.
 
 The problem: relaxing end-of-utterance timing to capture full phone
 numbers or order IDs adds latency to every other normal utterance.
-This example shows how to solve that by adjusting max_turn_silence
+This example shows how to solve that by adjusting min_turn_silence
 based on what kind of input the agent is expecting.
 
 Use case: A contact center voice agent that collects a caller's name,
-phone number, and PIN — each step uses a different max_turn_silence
+phone number, and PIN — each step uses a different min_turn_silence
 for the right balance of accuracy vs. latency.
 
 Requirements:
@@ -113,7 +113,7 @@ def log_stt_event(ev: SpeechEvent):
 class FormFillingAgent(Agent):
     """
     A voice agent that collects caller info in steps, dynamically
-    updating max_turn_silence at each step so longer inputs (like
+    updating min_turn_silence at each step so longer inputs (like
     phone numbers) don't get cut off, while keeping latency low
     for short responses.
     """
@@ -152,7 +152,7 @@ class FormFillingAgent(Agent):
             yield ev
 
     # ------------------------------------------------------------------
-    # Tools that the LLM can call — each one updates max_turn_silence
+    # Tools that the LLM can call — each one updates min_turn_silence
     # before the next user utterance.
     # ------------------------------------------------------------------
 
@@ -161,9 +161,9 @@ class FormFillingAgent(Agent):
         """Call this before asking a yes/no or short confirmation question."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=500,  # Single word — respond as fast as possible
+            min_turn_silence=100,  # Single word — check for end-of-turn immediately
         )
-        log_event("config_update", step="yes_no", max_turn_silence=500)
+        log_event("config_update", step="yes_no", min_turn_silence=100)
         return "Turn detection set for quick yes/no response."
 
     @agents.function_tool()
@@ -171,9 +171,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for the caller's name."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=1000,  # Names are short utterances
+            min_turn_silence=300,  # Names are short — brief wait before checking
         )
-        log_event("config_update", step="name", max_turn_silence=1000)
+        log_event("config_update", step="name", min_turn_silence=300)
         return "Turn detection set for name input."
 
     @agents.function_tool()
@@ -181,9 +181,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for a phone number."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=4000,  # Callers pause between digit groups
+            min_turn_silence=1000,  # Callers pause between digit groups — wait before checking
         )
-        log_event("config_update", step="phone", max_turn_silence=4000)
+        log_event("config_update", step="phone", min_turn_silence=1000)
         return "Turn detection set for phone number input. Will wait for pauses between digit groups."
 
     @agents.function_tool()
@@ -191,9 +191,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for a street/mailing address."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=4000,  # Addresses are multi-part with natural pauses
+            min_turn_silence=1000,  # Addresses are multi-part with natural pauses
         )
-        log_event("config_update", step="address", max_turn_silence=4000)
+        log_event("config_update", step="address", min_turn_silence=1000)
         return "Turn detection set for address input. Will wait for pauses between address parts."
 
     @agents.function_tool()
@@ -201,9 +201,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for an email address."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=4000,  # People spell emails slowly with pauses
+            min_turn_silence=1000,  # People spell emails slowly with pauses
         )
-        log_event("config_update", step="email", max_turn_silence=4000)
+        log_event("config_update", step="email", min_turn_silence=1000)
         return "Turn detection set for email input. Will wait for spelling pauses."
 
     @agents.function_tool()
@@ -211,9 +211,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for an account ID or alphanumeric code."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=3000,  # Alphanumeric codes — people read off screens
+            min_turn_silence=800,  # Alphanumeric codes — people read off screens
         )
-        log_event("config_update", step="account_id", max_turn_silence=3000)
+        log_event("config_update", step="account_id", min_turn_silence=800)
         return "Turn detection set for account ID input."
 
     @agents.function_tool()
@@ -221,9 +221,9 @@ class FormFillingAgent(Agent):
         """Call this before asking for a credit card number."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=5000,  # 16 digits in groups of 4 — long pauses between groups
+            min_turn_silence=1500,  # 16 digits in groups of 4 — long pauses between groups
         )
-        log_event("config_update", step="credit_card", max_turn_silence=5000)
+        log_event("config_update", step="credit_card", min_turn_silence=1500)
         return "Turn detection set for credit card input. Will wait for pauses between digit groups."
 
     @agents.function_tool()
@@ -231,9 +231,9 @@ class FormFillingAgent(Agent):
         """Call this after all info has been collected and confirmed."""
         stt_instance: assemblyai.STT = context.session.stt
         stt_instance.update_options(
-            max_turn_silence=1000,  # Back to default for general conversation
+            min_turn_silence=100,  # Back to default for general conversation
         )
-        log_event("config_update", step="done", max_turn_silence=1000)
+        log_event("config_update", step="done", min_turn_silence=100)
         return "Collection complete. You can now help the caller with their request."
 
 
@@ -245,7 +245,7 @@ async def entrypoint(ctx: agents.JobContext):
         stt=assemblyai.STT(
             model="u3-rt-pro",
             min_turn_silence=100,
-            max_turn_silence=1000,
+            min_turn_silence=1000,
             vad_threshold=0.3,
         ),
         tts=cartesia.TTS(model="sonic-3"),
