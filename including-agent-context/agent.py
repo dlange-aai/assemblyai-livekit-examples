@@ -48,8 +48,9 @@ server = AgentServer()
 @server.rtc_session()
 async def entrypoint(ctx: JobContext) -> None:
     session: AgentSession = AgentSession(
-        # AssemblyAI's u3-rt-pro model. `agent_context` is only supported on the
-        # u3-rt-pro family, so it must be the STT here.
+        # AssemblyAI's Universal-3.5 Pro streaming model (served by the
+        # `u3-rt-pro-beta-1` id below). `agent_context` is only supported on this
+        # family, so it must be the STT here.
         stt=assemblyai.STT(
             model="u3-rt-pro-beta-1",
             prompt="Transcribe this customer service call.",

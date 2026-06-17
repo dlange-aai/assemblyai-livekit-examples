@@ -2,8 +2,8 @@
 
 A bare-bones voice assistant showing the smallest amount of code needed to feed
 AssemblyAI's `agent_context` from a LiveKit agent. Added in **livekit-agents
-1.6.0**, `agent_context` tells the `u3-rt-pro` streaming model what the agent just
-said so it can bias transcription of the user's *next* reply.
+1.6.0**, `agent_context` tells AssemblyAI's Universal-3.5 Pro streaming model what the agent
+just said so it can bias transcription of the user's *next* reply.
 
 ## The handler
 
@@ -24,7 +24,8 @@ def _on_conversation_item_added(ev: ConversationItemAddedEvent) -> None:
   own turns (`ev.item.role == "assistant"`).
 - `update_options(agent_context=...)` sends an `UpdateConfiguration` over the live
   STT websocket — no reconnect.
-- Only supported on the `u3-rt-pro` family. Max **1500 characters**.
+- Only supported on the Universal-3.5 Pro (`u3-rt-pro`) streaming family. Max
+  **1500 characters**.
 - Push just the latest utterance; the plugin carries earlier turns forward
   automatically via `previous_context_n_turns` (a construction-time option on
   `assemblyai.STT`; leave unset for the server default, or `0` to disable).
