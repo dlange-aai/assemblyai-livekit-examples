@@ -10,14 +10,22 @@ just said so it can bias transcription of the user's *next* reply.
 ```python
 @session.on("conversation_item_added")
 def _on_conversation_item_added(ev: ConversationItemAddedEvent) -> None:
+    # Only the agent's own spoken turns become context for the user's reply.
     if ev.item.type != "message" or ev.item.role != "assistant":
         return
+
     agent_stt = session.stt
     if not isinstance(agent_stt, assemblyai.STT):
         return
+
     spoken = ev.item.text_content
-    if spoken:
-        agent_stt.update_options(agent_context=spoken[-1500:])
+    if not spoken:
+        return
+
+    # Push only the latest agent utterance; the plugin carries earlier turns
+    # forward automatically (see previous_context_n_turns on assemblyai.STT).
+    agent_stt.update_options(agent_context=spoken[-AGENT_CONTEXT_MAX_CHARS:])
+    logger.info(f"updated agent_context for next turn ({len(spoken)} chars)")
 ```
 
 - Fires whenever a message is added to the conversation; filter to the agent's
